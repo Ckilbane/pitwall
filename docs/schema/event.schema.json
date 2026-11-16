@@ -18,7 +18,7 @@
    "properties": {
     "key": {"type": "string"},
     "name": {"type": "string"},
-    "week": {"type": "integer", "minimum": 1, "maximum": 8},
+    "week": {"type": "integer", "minimum": 1, "maximum": 53},
     "type": {"enum": ["regional", "district", "district_cmp", "champs_div", "einstein"]},
     "district": {"type": ["string", "null"]},
     "state": {"type": ["string", "null"]},

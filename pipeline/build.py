@@ -541,6 +541,8 @@ def cmd_run(a: argparse.Namespace) -> int:
             out = computer.compute_season(y, dump, priors, new_out, staged, meta)
             errs = computer.validate_season(staged, y, schema_dir)
             if errs:
+                for e in errs:
+                    print(f"[{y}] validation: {e}", file=sys.stderr)
                 if y < max(seasons):
                     broken_priors_from = y
                 raise ValueError("validation failed: " + errs[0] + (f" (+{len(errs) - 1} more)" if len(errs) > 1 else ""))

@@ -61,11 +61,13 @@ export function typeLabel(type) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Week heading. Upstream numbering: 1-7 in season, 8 = Championship, null/0 = other. */
+/** Week heading. Upstream numbering: 1-7 in season, 8 = Championship, null/0 = other.
+ *  Weeks above 8 are official events held after Championship (2026 Israel district events). */
 export function weekLabel(week) {
   if (week == null) return 'Other events';
   if (week === 8) return 'Championship';
   if (week === 0) return 'Preseason';
+  if (week > 8) return `Week ${week} (after Championship)`;
   return `Week ${week}`;
 }
 
