@@ -1,0 +1,8 @@
+/* Models tab. Token variables only. */
+.pw-findings { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-1); max-width: 78ch; color: var(--ink); }
+.pw-caution { border-left: 3px solid var(--delta-down); padding: var(--space-1) var(--space-3); color: var(--ink); background: var(--surface); max-width: 78ch; font-size: 14px; line-height: 20px; }
+.pw-table tr.pw-diffrow td { background: var(--surface-sunk); }
+.pw-table tr.pw-season-start td { border-top: 1px solid var(--rule-strong); }
+.pw-chart--square { max-width: 480px; }
+.pw-how { border-top: 1px solid var(--rule); padding-top: var(--space-3); }
+.pw-how .pw-scroll { margin-top: var(--space-2); }

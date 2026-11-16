@@ -1,0 +1,224 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "season.schema.json",
+ "title": "PitWall per-season shards: data/{season}/season.json.gz (root), asof.json.gz ($defs/asofFile), traj.json.gz ($defs/trajFile)",
+ "description": "Schema version 1. Validates the decompressed JSON. Columnar tables: every array in a table's cols and models.<model> has exactly n entries (not expressible in JSON Schema; checked by pipeline/sb/validate_shards.py). Column names that depend on the season (vector keys VK and breakdown keys BK, listed in keys.vector / keys.breakdown) are checked by the same script. See docs/SPEC.md section 3.",
+ "type": "object",
+ "required": ["schema", "kind", "season", "game", "status", "generated_at", "data_version", "keys", "year", "predict", "events", "teams", "robot", "backtest"],
+ "additionalProperties": false,
+ "properties": {
+  "schema": {"const": 1},
+  "kind": {"const": "season"},
+  "season": {"$ref": "#/$defs/season"},
+  "game": {"type": "string"},
+  "status": {"enum": ["upcoming", "live", "complete"]},
+  "generated_at": {"$ref": "#/$defs/isoTime"},
+  "data_version": {"type": "string"},
+  "keys": {
+   "type": "object",
+   "required": ["vector", "breakdown", "names", "units", "groups", "auto_comps"],
+   "additionalProperties": false,
+   "properties": {
+    "vector": {"type": "array", "items": {"type": "string", "pattern": "^(epa|auto_epa|teleop_epa|endgame_epa|rp_[123]_epa|tiebreaker_epa|comp_[0-9]_epa)$"}, "description": "VK: rating vector keys for this season, in order. Upstream TeamYear field names."},
+    "breakdown": {"type": "array", "items": {"type": "string", "pattern": "^(score|no_foul|foul|auto|teleop|endgame|rp_[123]|tiebreaker|comp_[0-9])$"}, "description": "BK: per-alliance match result keys, in order. Match columns are red_<bk> and blue_<bk>."},
+    "names": {"type": "object", "additionalProperties": {"type": "string"}, "description": "breakdown.py key_to_name for the season: slot (auto, teleop, endgame, rp_1.., tiebreaker, comp_i) -> season name (e.g. comp_0 -> auto_coral_points)."},
+    "units": {"type": "object", "additionalProperties": {"enum": ["points", "count", "rp_score", "probability"]}, "description": "Per VK key. rp_*_epa are 'rp_score' (pre-sigmoid team contribution)."},
+    "groups": {"type": "object", "additionalProperties": {"enum": ["total", "auto", "teleop", "endgame", "match", "rp", "tiebreaker"]}, "description": "Per VK key, for grouping on the Breakdown tab. Rule in SPEC 3.3."},
+    "auto_comps": {"type": "array", "items": {"type": "string", "pattern": "^comp_[0-9]$"}}
+   }
+  },
+  "year": {
+   "type": "object",
+   "required": ["stats", "models"],
+   "additionalProperties": false,
+   "properties": {
+    "stats": {"type": "object", "required": ["score_mean", "score_sd", "foul_mean", "no_foul_mean", "auto_mean", "teleop_mean", "endgame_mean"], "additionalProperties": {"type": ["number", "null"]}, "description": "Upstream Year *_mean fields and score_sd (model independent)."},
+    "models": {
+     "type": "object",
+     "required": ["epa", "fast"],
+     "additionalProperties": {
+      "type": "object",
+      "required": ["percentiles", "metrics"],
+      "additionalProperties": false,
+      "properties": {
+       "percentiles": {"type": "object", "description": "VK key -> {p99, p90, p75, p25} from upstream Year *_99p.. fields.", "additionalProperties": {"type": "object", "required": ["p99", "p90", "p75", "p25"], "additionalProperties": {"type": ["number", "null"]}}},
+       "metrics": {"type": "object", "description": "Upstream Year metric fields verbatim (count, epa_conf, epa_acc, epa_mse, champs_*, epa_score_rmse, ...). Under 'fast' they hold Fast EPA's values under the same upstream names.", "additionalProperties": {"type": ["number", "null"]}}
+      }
+     }
+    }
+   }
+  },
+  "predict": {
+   "type": "object",
+   "description": "Constants the browser needs to reproduce match predictions (site/js/model/predict.js).",
+   "required": ["num_teams", "score_sd", "foul_rate", "models"],
+   "additionalProperties": false,
+   "properties": {
+    "num_teams": {"const": 3},
+    "score_sd": {"type": "number"},
+    "foul_rate": {"type": "number", "description": "Year.get_foul_rate() = foul_mean / no_foul_mean."},
+    "models": {"type": "object", "required": ["epa", "fast"], "additionalProperties": {"type": "object", "required": ["k"], "properties": {"k": {"type": "number", "description": "Win probability = 1 / (1 + 10^(k * (red - blue) / score_sd))."}}}}
+   }
+  },
+  "events": {
+   "allOf": [
+    {"$ref": "#/$defs/table"},
+    {
+     "properties": {
+      "cols": {"required": ["key", "name", "week", "type", "district", "state", "country", "start_date", "end_date", "status", "num_teams", "qual_matches", "current_match", "video", "match_count", "completed_count", "file_hash", "file_bytes"]},
+      "models": {"required": ["epa", "fast"], "additionalProperties": {"required": ["epa_max", "epa_top_8", "epa_top_24", "epa_mean", "epa_sd", "count", "epa_conf", "epa_acc", "epa_mse", "epa_score_rmse", "epa_score_error", "rp_count", "epa_rp_1_acc", "epa_rp_2_acc", "epa_rp_3_acc"]}}
+     }
+    }
+   ]
+  },
+  "teams": {
+   "allOf": [
+    {"$ref": "#/$defs/table"},
+    {
+     "properties": {
+      "cols": {"required": ["team", "name", "country", "state", "district", "rookie_year", "wins", "losses", "ties", "count", "winrate", "next_event_key", "next_event_week", "events"]},
+      "models": {"required": ["epa", "fast"], "additionalProperties": {"required": ["epa_start", "epa_pre_champs", "epa_max", "epa", "auto_epa", "teleop_epa", "endgame_epa", "unitless_epa", "norm_epa", "total_epa_rank", "total_epa_percentile", "total_team_count", "country_epa_rank", "country_epa_percentile", "country_team_count", "state_epa_rank", "state_epa_percentile", "state_team_count", "district_epa_rank", "district_epa_percentile", "district_team_count", "cons_sd", "cons_n", "change_flag", "change_event", "change_z", "opp_effect", "opp_effect_se", "opp_n"]}}
+     }
+    }
+   ]
+  },
+  "robot": {
+   "type": "object",
+   "description": "Per-team counts of per-robot TBA values over the team's counted, completed matches this season (quals and playoffs).",
+   "required": ["fields", "counts"],
+   "additionalProperties": false,
+   "properties": {
+    "fields": {"type": "array", "items": {"$ref": "#/$defs/robotField"}},
+    "counts": {"type": "object", "description": "field key -> array (aligned with teams rows) of arrays of counts, one per code in fields[].codes order.", "additionalProperties": {"type": "array", "items": {"type": "array", "items": {"type": "integer", "minimum": 0}}}}
+   }
+  },
+  "backtest": {
+   "type": "object",
+   "required": ["epa", "fast"],
+   "additionalProperties": {"$ref": "#/$defs/backtestSummary"}
+  }
+ },
+ "$defs": {
+  "season": {"type": "integer", "minimum": 2022, "maximum": 2100},
+  "isoTime": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+  "table": {
+   "type": "object",
+   "required": ["n", "cols"],
+   "properties": {
+    "n": {"type": "integer", "minimum": 0},
+    "cols": {"type": "object", "additionalProperties": {"type": "array"}},
+    "models": {"type": "object", "propertyNames": {"enum": ["epa", "fast"]}, "additionalProperties": {"type": "object", "additionalProperties": {"type": "array"}}}
+   }
+  },
+  "robotField": {
+   "type": "object",
+   "required": ["key", "codes", "active"],
+   "additionalProperties": false,
+   "properties": {
+    "key": {"type": "string", "description": "perrobot_fields.json field key, e.g. endGameRobot."},
+    "codes": {"type": "array", "items": {"type": "string"}, "description": "Value strings; data arrays store the index into this list (null = no value)."},
+    "active": {"type": "boolean", "description": "false when the build-time check against the alliance total failed (match rate < 0.99)."},
+    "match_rate": {"type": ["number", "null"]}
+   }
+  },
+  "metrics": {
+   "type": "object",
+   "required": ["n", "ties", "acc", "acc_no_ties", "brier", "log_loss", "conf", "score_n", "score_mae", "score_rmse", "score_bias", "rp"],
+   "additionalProperties": false,
+   "properties": {
+    "n": {"type": "integer", "minimum": 0},
+    "ties": {"type": "integer", "minimum": 0},
+    "acc": {"type": ["number", "null"]},
+    "acc_no_ties": {"type": ["number", "null"]},
+    "brier": {"type": ["number", "null"]},
+    "log_loss": {"type": ["number", "null"]},
+    "conf": {"type": ["number", "null"]},
+    "score_n": {"type": "integer", "minimum": 0},
+    "score_mae": {"type": ["number", "null"]},
+    "score_rmse": {"type": ["number", "null"]},
+    "score_bias": {"type": ["number", "null"]},
+    "rp": {"type": "object", "propertyNames": {"enum": ["rp_1", "rp_2", "rp_3"]}, "additionalProperties": {"type": "object", "required": ["n", "brier", "acc"], "additionalProperties": false, "properties": {"n": {"type": "integer"}, "brier": {"type": ["number", "null"]}, "acc": {"type": ["number", "null"]}}}}
+   }
+  },
+  "backtestSummary": {
+   "type": "object",
+   "required": ["model", "season", "config_hash", "year_constants", "leak_audit", "overall", "slices", "calibration"],
+   "additionalProperties": false,
+   "properties": {
+    "model": {"enum": ["epa", "fast"]},
+    "season": {"$ref": "#/$defs/season"},
+    "config_hash": {"type": "string"},
+    "year_constants": {"const": "season_week1", "description": "Year means/sd come from the season's own week-1 matches, as upstream does (known look-ahead, SPEC 4.5)."},
+    "leak_audit": {"type": "object", "required": ["cuts", "max_abs_diff_win_prob", "passed"], "properties": {"cuts": {"type": "integer"}, "max_abs_diff_win_prob": {"type": "number"}, "passed": {"type": "boolean"}}},
+    "overall": {"$ref": "#/$defs/metrics"},
+    "slices": {
+     "type": "object",
+     "required": ["week", "event_type", "comp_level", "season_matches", "event_matches"],
+     "additionalProperties": false,
+     "properties": {
+      "week": {"type": "object", "propertyNames": {"pattern": "^[1-8]$"}, "additionalProperties": {"$ref": "#/$defs/metrics"}},
+      "event_type": {"type": "object", "propertyNames": {"enum": ["regional", "district", "district_cmp", "champs_div", "einstein"]}, "additionalProperties": {"$ref": "#/$defs/metrics"}},
+      "comp_level": {"type": "object", "propertyNames": {"enum": ["qual", "elim"]}, "additionalProperties": {"$ref": "#/$defs/metrics"}},
+      "season_matches": {"type": "object", "propertyNames": {"enum": ["first3", "later"]}, "additionalProperties": {"$ref": "#/$defs/metrics"}},
+      "event_matches": {"type": "object", "propertyNames": {"enum": ["first3", "later"]}, "additionalProperties": {"$ref": "#/$defs/metrics"}}
+     }
+    },
+    "calibration": {
+     "type": "array",
+     "minItems": 10,
+     "maxItems": 10,
+     "items": {"type": "object", "required": ["lo", "hi", "n", "mean_pred", "frac_red_win"], "additionalProperties": false, "properties": {"lo": {"type": "number"}, "hi": {"type": "number"}, "n": {"type": "integer"}, "mean_pred": {"type": ["number", "null"]}, "frac_red_win": {"type": ["number", "null"]}}}
+    }
+   }
+  },
+  "asofFile": {
+   "type": "object",
+   "description": "data/{season}/asof.json.gz. Rating snapshots at the end of each week. Rows aligned with season.json teams rows (same order, same n).",
+   "required": ["schema", "kind", "season", "points", "team", "models"],
+   "additionalProperties": false,
+   "properties": {
+    "schema": {"const": 1},
+    "kind": {"const": "asof"},
+    "season": {"$ref": "#/$defs/season"},
+    "points": {"type": "array", "items": {"type": "object", "required": ["id", "label"], "properties": {"id": {"type": "string", "pattern": "^w[0-8]$"}, "label": {"type": "string"}}}, "description": "Always 9 entries w0..w8. w0 = preseason (epa_start vector); wN = after every match with week <= N."},
+    "team": {"type": "array", "items": {"type": "integer"}},
+    "models": {
+     "type": "object",
+     "required": ["epa", "fast"],
+     "additionalProperties": {
+      "type": "object",
+      "required": ["epa", "auto_epa", "teleop_epa", "endgame_epa"],
+      "additionalProperties": {"type": "array", "items": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": ["number", "null"]}}}
+     }
+    }
+   }
+  },
+  "trajFile": {
+   "type": "object",
+   "description": "data/{season}/traj.json.gz. Per-team season trajectory: one entry per counted match with a post-match rating, in processing order. Rows aligned with season.json teams rows.",
+   "required": ["schema", "kind", "season", "team", "seq", "event", "models"],
+   "additionalProperties": false,
+   "properties": {
+    "schema": {"const": 1},
+    "kind": {"const": "traj"},
+    "season": {"$ref": "#/$defs/season"},
+    "team": {"type": "array", "items": {"type": "integer"}},
+    "seq": {"type": "array", "items": {"type": "array", "items": {"type": "integer"}}, "description": "Per team: delta-coded global match seq (processing order): first entry absolute, then differences from the previous entry (>= 1)."},
+    "event": {"type": "array", "items": {"type": "array", "items": {"type": "integer"}}, "description": "Per team: index into season.json events rows for each entry."},
+    "models": {
+     "type": "object",
+     "required": ["epa", "fast"],
+     "additionalProperties": {
+      "type": "object",
+      "required": ["epa", "resid"],
+      "additionalProperties": false,
+      "properties": {
+       "epa": {"type": "array", "items": {"type": "array", "items": {"type": ["number", "null"]}}, "description": "Post-match total rating per entry."},
+       "resid": {"type": "array", "items": {"type": "array", "items": {"type": ["number", "null"]}}, "description": "Attributed total minus pre-match total per entry, 1 decimal (null if the match did not update ratings)."}
+      }
+     }
+    }
+   }
+  }
+ }
+}

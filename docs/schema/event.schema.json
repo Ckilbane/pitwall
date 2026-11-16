@@ -1,0 +1,133 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "event.schema.json",
+ "title": "PitWall per-event shard: data/{season}/events/{event_key}.json.gz",
+ "description": "Schema version 1. Validates the decompressed JSON. All tables are columnar; every array in cols and models.<model> has exactly n entries (checked by pipeline/sb/validate_shards.py, together with the season-dependent VK/BK column names). See docs/SPEC.md section 3.5.",
+ "type": "object",
+ "required": ["schema", "kind", "season", "event", "meta", "team_events", "matches", "team_matches", "alliances", "robot"],
+ "additionalProperties": false,
+ "properties": {
+  "schema": {"const": 1},
+  "kind": {"const": "event"},
+  "season": {"type": "integer", "minimum": 2022},
+  "event": {"type": "string", "pattern": "^[0-9]{4}[a-z0-9]+$"},
+  "meta": {
+   "type": "object",
+   "required": ["key", "name", "week", "type", "district", "state", "country", "start_date", "end_date", "status", "num_teams", "qual_matches", "current_match", "video"],
+   "additionalProperties": false,
+   "properties": {
+    "key": {"type": "string"},
+    "name": {"type": "string"},
+    "week": {"type": "integer", "minimum": 1, "maximum": 8},
+    "type": {"enum": ["regional", "district", "district_cmp", "champs_div", "einstein"]},
+    "district": {"type": ["string", "null"]},
+    "state": {"type": ["string", "null"]},
+    "country": {"type": ["string", "null"]},
+    "start_date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "end_date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "status": {"enum": ["Upcoming", "Ongoing", "Completed", "Invalid"]},
+    "num_teams": {"type": "integer"},
+    "qual_matches": {"type": ["integer", "null"]},
+    "current_match": {"type": ["integer", "null"]},
+    "video": {"type": ["string", "null"]}
+   }
+  },
+  "team_events": {
+   "allOf": [
+    {"$ref": "#/$defs/table"},
+    {
+     "properties": {
+      "cols": {"required": ["team", "team_name", "first_event", "wins", "losses", "ties", "count", "winrate", "qual_wins", "qual_losses", "qual_ties", "qual_count", "qual_winrate", "rps", "rps_per_match", "rank", "num_teams"]},
+      "models": {
+       "required": ["epa", "fast"],
+       "additionalProperties": {
+        "required": ["epa_start", "epa_pre_elim", "epa_mean", "epa_max", "epa", "auto_epa", "teleop_epa", "endgame_epa", "unitless_epa", "norm_epa", "pre_epa", "pre_auto_epa", "pre_teleop_epa", "pre_endgame_epa", "change_k", "change_mean_resid", "change_z", "change_flag"],
+        "description": "Upstream TeamEvent EPA fields (end-of-event vector under the VK names), plus pre_<vk> for every VK key (full vector entering the event = pre-match vector of the team's first match here), plus change-detector fields."
+       }
+      }
+     }
+    }
+   ]
+  },
+  "matches": {
+   "allOf": [
+    {"$ref": "#/$defs/table"},
+    {
+     "properties": {
+      "cols": {
+       "required": ["key", "comp_level", "set_number", "match_number", "elim", "time", "predicted_time", "status", "video", "seq", "red", "blue", "red_dq", "blue_dq", "red_surrogate", "blue_surrogate", "winner", "red_score", "blue_score", "red_no_foul", "blue_no_foul", "red_foul", "blue_foul", "red_auto", "blue_auto", "red_teleop", "blue_teleop", "red_endgame", "blue_endgame", "red_rp_1", "blue_rp_1", "red_rp_2", "blue_rp_2", "red_tiebreaker", "blue_tiebreaker"],
+       "description": "Rows in processing order (seq ascending). red/blue: arrays of team numbers (3, or 4 on 4-team alliances). red_<bk>/blue_<bk> for every BK key; null when TBA has no breakdown for that alliance or the match is unplayed (score -1 is exported as null)."
+      },
+      "models": {
+       "required": ["epa", "fast"],
+       "additionalProperties": {"required": ["epa_winner", "epa_win_prob", "epa_red_score_pred", "epa_blue_score_pred", "epa_red_rp_1_pred", "epa_red_rp_2_pred", "epa_red_rp_3_pred", "epa_blue_rp_1_pred", "epa_blue_rp_2_pred", "epa_blue_rp_3_pred", "red_pred", "blue_pred"]}
+      }
+     }
+    }
+   ]
+  },
+  "team_matches": {
+   "allOf": [
+    {"$ref": "#/$defs/table"},
+    {
+     "properties": {
+      "cols": {"required": ["m", "team", "alliance", "slot"], "description": "One row per (match, team) in match row order, red slots then blue slots. m = row index into matches; alliance 0 = red, 1 = blue; slot 1..4."},
+      "models": {
+       "required": ["epa", "fast"],
+       "additionalProperties": {
+        "required": ["epa", "auto_epa", "teleop_epa", "endgame_epa", "attr_epa", "attr_auto_epa", "attr_teleop_epa", "attr_endgame_epa"],
+        "description": "Post-match vector under every VK name (null if the team was not updated: unplayed match or slot 4), and attributed values attr_* (null if not attributed). Pre-match vectors are derived (SPEC 3.5.4)."
+       }
+      }
+     }
+    }
+   ]
+  },
+  "alliances": {
+   "oneOf": [
+    {"type": "null"},
+    {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": ["name", "picks", "declines", "backup", "status"],
+      "additionalProperties": false,
+      "properties": {
+       "name": {"type": ["string", "null"]},
+       "picks": {"type": "array", "items": {"type": "integer"}},
+       "declines": {"type": "array", "items": {"type": "integer"}},
+       "backup": {"oneOf": [{"type": "null"}, {"type": "object", "required": ["in", "out"], "properties": {"in": {"type": "integer"}, "out": {"type": "integer"}}}]},
+       "status": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {"level": {"type": ["string", "null"]}, "status": {"type": ["string", "null"]}, "record": {"type": ["object", "null"]}}}]}
+      }
+     }
+    }
+   ]
+  },
+  "robot": {
+   "type": "object",
+   "description": "Per-robot facts and robot-attributed points per match. Every inner array has 6 entries: red slots 1-3 then blue slots 1-3 (slot 4 never has per-robot data).",
+   "required": ["fields", "values", "points", "scored", "ok"],
+   "additionalProperties": false,
+   "properties": {
+    "fields": {"type": "array", "items": {"type": "object", "required": ["key", "codes", "active"], "properties": {"key": {"type": "string"}, "codes": {"type": "array", "items": {"type": "string"}}, "active": {"type": "boolean"}}}},
+    "values": {"type": "object", "description": "field key -> per match row: 6 codes (index into fields[].codes) or null.", "additionalProperties": {"$ref": "#/$defs/perMatch6Int"}},
+    "points": {"type": "object", "description": "breakdown slot (comp_i, auto, endgame) -> per match row: 6 robot-attributed point values.", "propertyNames": {"pattern": "^(auto|teleop|endgame|comp_[0-9])$"}, "additionalProperties": {"$ref": "#/$defs/perMatch6Num"}},
+    "scored": {"$ref": "#/$defs/perMatch6Num", "description": "Per match row: total robot-attributable points per robot, each point counted once."},
+    "ok": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": ["boolean", "null"]}}, "description": "Per match row: [red, blue] true if every active part reproduced the alliance check_field exactly; null if no breakdown."}
+   }
+  }
+ },
+ "$defs": {
+  "table": {
+   "type": "object",
+   "required": ["n", "cols", "models"],
+   "properties": {
+    "n": {"type": "integer", "minimum": 0},
+    "cols": {"type": "object", "additionalProperties": {"type": "array"}},
+    "models": {"type": "object", "propertyNames": {"enum": ["epa", "fast"]}, "additionalProperties": {"type": "object", "additionalProperties": {"type": "array"}}}
+   }
+  },
+  "perMatch6Int": {"type": "array", "items": {"oneOf": [{"type": "null"}, {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": ["integer", "null"]}}]}},
+  "perMatch6Num": {"type": "array", "items": {"oneOf": [{"type": "null"}, {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": ["number", "null"]}}]}}
+ }
+}

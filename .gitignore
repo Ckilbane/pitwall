@@ -4,3 +4,12 @@ __pycache__/
 /raw/
 /out/
 .DS_Store
+
+# local runs of pipeline/build.py and pipeline/fetch (the Action does these in its workspace)
+/cache/
+/work/
+/staged_data/
+/_site/
+/plan.json
+/fetch_report.json
+/live_manifest.json
