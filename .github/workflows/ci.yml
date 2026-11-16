@@ -1,0 +1,62 @@
+name: CI
+
+# Tests on every push and pull request.  No secrets, no network: fixtures only.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r pipeline/requirements.txt pytest==9.1.1
+
+      - name: Pipeline tests (includes the leak audit on the 2023 fixture)
+        run: python -m pytest pipeline/tests -q
+
+      - name: Validate the fixture shards against the schemas
+        run: |
+          if [ -d pipeline/tests/fixtures/shards ]; then
+            python pipeline/sb/validate_shards.py pipeline/tests/fixtures/shards docs/schema
+          else
+            echo "no fixture shards in pipeline/tests/fixtures/shards: skipped"
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Site tests
+        run: |
+          if [ -d site/tests ]; then
+            node --test "site/tests/**/*.test.mjs"
+          else
+            echo "no site/tests yet: skipped"
+          fi

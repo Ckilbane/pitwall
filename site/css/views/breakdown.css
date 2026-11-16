@@ -1,0 +1,2 @@
+/* Breakdown tab. Token variables only. */
+.pw-table tr.pw-strong td { color: var(--ink); font-weight: 600; }

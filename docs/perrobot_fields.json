@@ -1,0 +1,157 @@
+{
+ "schema": 1,
+ "description": "Per-robot fields in TBA match score_breakdown, 2022-2026, and how PitWall turns them into robot-level points. Machine-readable: pipeline/sb/perrobot.py (WP2) loads this file. See docs/SPEC.md section 4.4.",
+ "robot_index": "Field name suffix Robot1..Robot3 refers to alliances.<color>.team_keys[0..2] in TBA order (TBA convention, not independently verified). A 4th team on a 4-team alliance gets null for every per-robot field.",
+ "rules": {
+  "map": "points = parts[].points[value] for that robot; values not listed score 0.",
+  "split_once": "The alliance scores the points in check_field at most once; credit them in equal shares to the robots whose value is in `qualifying`. If no robot qualifies but check_field > 0, the points stay in the alliance residual.",
+  "map_bridge": "points = points_level[value] if alliance field `state_field` equals `level_value`, else points_unlevel[value].",
+  "chain_share": "Robots with the same onstage location (value in `locations`) share a chain. The alliance check_field points are split equally among robots on chains holding 2 or more robots.",
+  "location_flag": "For each onstage robot, +points_per_robot if alliance boolean field `flag_prefix` + location is true.",
+  "location_credit": "For each location L with alliance boolean `flag_prefix` + L true, `points_per_flag` points are credited in equal shares to robots onstage at L; if none is at L, to all onstage robots; if none is onstage, to the alliance residual."
+ },
+ "verification": "verified=true means the rule reproduced the alliance check_field exactly on every alliance with a score_breakdown in the 2022-2025 dumps fetched 2026-11-11 (counts in `evidence`). WP2 re-checks every season at build time; any part whose match rate is below 0.99 is exported with active=false and is not used for Fast EPA attribution.",
+ "seasons": {
+  "2022": {
+   "game": "Rapid React",
+   "fields": [
+    {
+     "tba": "taxiRobot{n}",
+     "key": "taxiRobot",
+     "meaning": "Robot left the tarmac in auto (taxi).",
+     "values": ["Yes", "No"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_0", "slot_name": "auto_taxi_points", "also_in": ["auto", "no_foul"], "rule": "map", "points": {"Yes": 2}, "check_field": "autoTaxiPoints", "verified": true, "evidence": "29,290 of 29,290 alliances exact"}
+     ]
+    },
+    {
+     "tba": "endgameRobot{n}",
+     "key": "endgameRobot",
+     "meaning": "Hangar rung reached at the end of the match.",
+     "values": ["None", "Low", "Mid", "High", "Traversal"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_5", "slot_name": "endgame_points", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"Low": 4, "Mid": 6, "High": 10, "Traversal": 15}, "check_field": "endgamePoints", "verified": true, "evidence": "29,290 of 29,290 alliances exact. Note comp_5 and the standard endgame slot are the same points; count them once in robot totals."}
+     ]
+    }
+   ]
+  },
+  "2023": {
+   "game": "Charged Up",
+   "fields": [
+    {
+     "tba": "mobilityRobot{n}",
+     "key": "mobilityRobot",
+     "meaning": "Robot left the community in auto (mobility).",
+     "values": ["Yes", "No"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_0", "slot_name": "auto_charge_station_points", "also_in": ["auto", "no_foul"], "rule": "map", "points": {"Yes": 3}, "check_field": "autoMobilityPoints", "verified": true, "evidence": "32,632 of 32,632 alliances exact. comp_0 = mobility + auto charge station points (vendored clean_breakdown_2023)."}
+     ]
+    },
+    {
+     "tba": "autoChargeStationRobot{n}",
+     "key": "autoChargeStationRobot",
+     "meaning": "Robot docked on the charge station at the end of auto.",
+     "values": ["None", "Docked"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_0", "slot_name": "auto_charge_station_points", "also_in": ["auto", "no_foul"], "rule": "split_once", "qualifying": ["Docked"], "alliance_points": "8 if autoBridgeState != 'Level' else 12 (only one robot scores)", "check_field": "autoChargeStationPoints", "verified": true, "evidence": "32,632 of 32,632 alliances exact with 'one robot scores, 8 docked / 12 engaged'; 45 alliances had 2-3 robots docked, so credit is split equally among docked robots (an assumption about who scored)."}
+     ]
+    },
+    {
+     "tba": "endGameChargeStationRobot{n}",
+     "key": "endGameChargeStationRobot",
+     "meaning": "Robot state at the end of the match: parked in the community or docked on the charge station.",
+     "values": ["None", "Park", "Docked"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_9", "slot_name": "endgame_charge_station_points", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"Park": 2}, "check_field": "endGameParkPoints", "verified": true, "evidence": "32,632 of 32,632 alliances exact"},
+      {"slot": "comp_9", "slot_name": "endgame_charge_station_points", "also_in": ["endgame", "no_foul"], "rule": "map_bridge", "state_field": "endGameBridgeState", "level_value": "Level", "points_level": {"Docked": 10}, "points_unlevel": {"Docked": 6}, "check_field": "endGameChargeStationPoints", "verified": true, "evidence": "32,632 of 32,632 alliances exact"}
+     ]
+    }
+   ]
+  },
+  "2024": {
+   "game": "Crescendo",
+   "fields": [
+    {
+     "tba": "autoLineRobot{n}",
+     "key": "autoLineRobot",
+     "meaning": "Robot left its starting zone in auto (leave).",
+     "values": ["Yes", "No"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_0", "slot_name": "auto_leave_points", "also_in": ["auto", "no_foul"], "rule": "map", "points": {"Yes": 2}, "check_field": "autoLeavePoints", "verified": true, "evidence": "33,954 of 33,954 alliances exact"}
+     ]
+    },
+    {
+     "tba": "endGameRobot{n}",
+     "key": "endGameRobot",
+     "meaning": "Robot end state: parked, or onstage (hanging) on the chain at StageLeft, StageRight or CenterStage.",
+     "values": ["None", "Parked", "StageLeft", "StageRight", "CenterStage"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_5", "slot_name": "endgame_park_points", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"Parked": 1}, "check_field": "endGameParkPoints", "verified": true, "evidence": "33,954 of 33,954 alliances exact"},
+      {"slot": "comp_6", "slot_name": "endgame_on_stage_points", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"StageLeft": 3, "StageRight": 3, "CenterStage": 3}, "check_field": "endGameOnStagePoints", "verified": true, "evidence": "33,954 of 33,954 alliances exact"},
+      {"slot": "comp_9", "slot_name": "endgame_spotlight_points", "also_in": ["endgame", "no_foul"], "rule": "location_flag", "locations": ["StageLeft", "StageRight", "CenterStage"], "flag_prefix": "mic", "points_per_robot": 1, "check_field": "endGameSpotLightBonusPoints", "verified": true, "evidence": "33,954 of 33,954 alliances exact"},
+      {"slot": "comp_7", "slot_name": "endgame_harmony_points", "also_in": ["endgame", "no_foul"], "rule": "chain_share", "locations": ["StageLeft", "StageRight", "CenterStage"], "check_field": "endGameHarmonyPoints", "verified": true, "evidence": "Harmony points observed only when 2+ robots share a location (2 points for 2 robots on one chain). Equal split among the sharing robots is a PitWall convention."},
+      {"slot": "comp_8", "slot_name": "endgame_trap_points", "also_in": ["endgame", "no_foul"], "rule": "location_credit", "locations": ["StageLeft", "StageRight", "CenterStage"], "flag_prefix": "trap", "points_per_flag": 5, "check_field": "endGameNoteInTrapPoints", "verified": false, "evidence": "Alliance total = 5 x lit trap flags (33,954 exact). Which robot scored the trap is not in TBA; crediting robots onstage at that location is an assumption."}
+     ]
+    }
+   ]
+  },
+  "2025": {
+   "game": "Reefscape",
+   "fields": [
+    {
+     "tba": "autoLineRobot{n}",
+     "key": "autoLineRobot",
+     "meaning": "Robot left its starting line in auto (leave).",
+     "values": ["Yes", "No"],
+     "verified": true,
+     "parts": [
+      {"slot": "auto", "slot_name": "auto_points", "also_in": ["no_foul"], "rule": "map", "points": {"Yes": 3}, "check_field": "autoMobilityPoints", "verified": true, "no_comp_slot": true, "evidence": "35,685 of 35,692 alliances exact (7 mismatches). Leave has no comp slot in 2025 (match_auto auto_not_in_comps); reported as a robot fact and robot points, NOT used for Fast EPA component attribution in v1 because no rating slot tracks it."}
+     ]
+    },
+    {
+     "tba": "endGameRobot{n}",
+     "key": "endGameRobot",
+     "meaning": "Robot end state at the barge: parked, shallow cage or deep cage.",
+     "values": ["None", "Parked", "ShallowCage", "DeepCage"],
+     "verified": true,
+     "parts": [
+      {"slot": "comp_9", "slot_name": "barge_points", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"Parked": 2, "ShallowCage": 6, "DeepCage": 12}, "check_field": "endGameBargePoints", "verified": true, "evidence": "35,692 of 35,692 alliances exact. comp_9 equals the standard endgame slot in 2025; count once."}
+     ]
+    }
+   ]
+  },
+  "2026": {
+   "game": "Rebuilt",
+   "note": "No 2026 dump yet. Vendored clean_breakdown_2026 reads only alliance fields (hubScore.*, autoTowerPoints, endGameTowerPoints, energized/supercharged/traversalAchieved). FRC Events match pages show per-robot 'Auto Tower' and 'Endgame Tower' rows (Endgame Tower values like 'None, None, None'), so per-robot tower fields exist; the TBA field names and value strings below are inferred from TBA's naming pattern and the alliance field names. Point values are from memory of the game manual. Everything here is unverified until WP2 sees real data; the build-time check (match rate >= 0.99 against check_field) decides whether each part is used.",
+   "fields": [
+    {
+     "tba": "autoTowerRobot{n}",
+     "key": "autoTowerRobot",
+     "meaning": "Robot climbed the tower in auto (inferred; likely Level 1 only).",
+     "values": ["None", "Level1"],
+     "verified": false,
+     "parts": [
+      {"slot": "comp_1", "slot_name": "auto_tower", "also_in": ["auto", "no_foul"], "rule": "map", "points": {"Level1": 15}, "check_field": "autoTowerPoints", "verified": false, "evidence": "Inferred field name, values and points. WP2: if the field is absent, search the 2026 breakdown keys for /Robot[123]$/ containing 'auto' and 'Tower', and fit points per value by least squares against autoTowerPoints before enabling."}
+     ]
+    },
+    {
+     "tba": "endGameTowerRobot{n}",
+     "key": "endGameTowerRobot",
+     "meaning": "Robot tower level at the end of the match.",
+     "values": ["None", "Level1", "Level2", "Level3"],
+     "verified": false,
+     "parts": [
+      {"slot": "comp_6", "slot_name": "endgame_tower", "also_in": ["endgame", "no_foul"], "rule": "map", "points": {"Level1": 10, "Level2": 20, "Level3": 30}, "check_field": "endGameTowerPoints", "verified": false, "evidence": "Inferred field name, values and points; FRC Events shows a per-robot 'Endgame Tower' row. Same discovery and fitting fallback as autoTowerRobot."}
+     ]
+    }
+   ]
+  }
+ }
+}

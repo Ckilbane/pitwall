@@ -1,0 +1,9 @@
+/* Events view (WP4b). */
+.pwe-ev a { font-weight: 600; color: var(--ink); text-decoration: none; }
+.pwe-ev a:hover { text-decoration: underline; }
+.pwe-ev__sub { display: block; font-family: var(--font-mono); }
+.pwe-weekrow th { background: var(--surface-sunk); color: var(--ink); text-align: left; font: 600 14px/20px var(--font-display); letter-spacing: .02em; text-transform: none; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule); position: sticky; left: 0; }
+.pwe-weekrow .pw-small { font-family: var(--font-sans); font-weight: 400; }
+.pwe-live { color: var(--ink); font-weight: 600; }
+.pwe-table td.pwe-ev { min-width: 260px; max-width: 360px; white-space: normal; }
+@media (max-width: 640px) { .pwe-table td.pwe-ev { min-width: 200px; } }

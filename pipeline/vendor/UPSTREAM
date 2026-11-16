@@ -1,0 +1,2 @@
+avgupta456/statbotics @ a2cea5553e35693d423400f419bd770cb2143408 (2026-06-13T23:05:37Z)
+- src/tba/constants.py: upstream's hard-coded TBA AUTH_KEY removed (set to ""); PitWall never uses it.

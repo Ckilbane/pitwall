@@ -1,0 +1,8 @@
+{
+  "seasons": [2022, 2023, 2024, 2025, 2026],
+  "current_season": 2026,
+  "archive_priors": "pipeline/priors/archive_team_years_2016_2023.csv",
+  "default_region": "fma",
+  "default_watchlist": [1218, 1219],
+  "default_model": "epa"
+}

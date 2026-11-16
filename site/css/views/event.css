@@ -1,0 +1,46 @@
+/* Event view and shared bits of Events/Match (WP4b). Token variables only; pw- classes come from pitwall.css. */
+.pwe-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.pwe-box { border: 1px solid var(--rule); border-radius: var(--radius-md); }
+.pwe-box:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.pwe-content { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+/* tabs: a nav of links, same visual language as the main nav */
+.pwe-tabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); }
+.pwe-tabs a { font: 500 14px/20px var(--font-sans); color: var(--ink-muted); text-decoration: none; padding: 10px var(--space-3) 8px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.pwe-tabs a:hover { color: var(--ink); }
+.pwe-tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+.pwe-tabs__ext { margin-left: auto; }
+
+/* tables */
+.pwe-table th[colspan="2"] { text-align: left; }
+.pwe-table td.pwe-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.pwe-table td.pwe-name span { display: block; overflow: hidden; text-overflow: ellipsis; }
+.pwe-table th[scope="row"] { font: 600 13px/20px var(--font-sans); color: var(--ink); text-align: left; padding: 6px var(--space-3); border-bottom: 1px solid var(--rule); white-space: nowrap; background: var(--surface); text-transform: none; letter-spacing: 0; }
+.pwe-table td.pw-sticky-b, .pwe-table th.pw-sticky-b { background: var(--surface); }
+.pwe-table th.pw-sticky-a, .pwe-table th.pw-sticky-b, .pwe-table th.pwe-stick { background: var(--surface); }
+.pwe-table tbody tr:hover td.pw-sticky-a, .pwe-table tbody tr:hover td.pw-sticky-b, .pwe-table tbody tr:hover td.pwe-stick { background: var(--surface-sunk); }
+.pwe-stick { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.pwe-table td.pwe-stick { color: var(--ink); font-weight: 600; }
+.pwe-table tr.you td.pwe-stick { background: var(--highlight-tint); }
+.pwe-chips { display: inline-flex; gap: var(--space-1); flex-wrap: nowrap; }
+.pwe-table td.pwe-alname, .pwe-alname { font-weight: 600; color: var(--ink); }
+
+/* matches list */
+.pwe-score { font-weight: 600; color: var(--ink-subtle); }
+.pwe-score.pwe-win.pwe-score--red { color: var(--alliance-red); }
+.pwe-score.pwe-win.pwe-score--blue { color: var(--alliance-blue); }
+.pwe-wpcell { min-width: 150px; }
+.pwe-wpcell > div + div { margin-top: 2px; }
+.pwe-predscore { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.pwe-matches td.n.pwe-score { font-size: 14px; }
+
+@media (pointer: coarse) {
+  .pwe-tabs a { display: inline-flex; align-items: center; min-height: 44px; padding-top: 0; padding-bottom: 0; }
+}
+@media (max-width: 640px) {
+  .pwe-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; }
+  .pwe-tabs a { white-space: nowrap; }
+  .pwe-tabs__ext { margin-left: 0; }
+  .pwe-table td.pwe-name { max-width: 140px; }
+}
+@media (prefers-reduced-motion: reduce) { .pwe-box, .pwe-tabs a { transition: none; } }

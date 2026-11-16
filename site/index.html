@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PitWall</title>
+<meta name="description" content="FRC ratings, EPA and match predictions, recomputed from The Blue Alliance data by FRC 1218.">
+<meta name="theme-color" content="#f8f7f4">
+<script>try{var t=JSON.parse(localStorage.getItem('pw.v1.theme'));if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="icon" href="./brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="./brand/pitwall-favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./brand/apple-touch-icon-180.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<!-- Fonts: Barlow, Barlow Condensed, JetBrains Mono, Source Serif 4 (all OFL). The spec calls for self-hosted
+     woff2 files in assets/fonts/; none were available when this shell was built, so this loads them from Google
+     Fonts with system fallbacks (see tokens.css). css/fonts.css holds the local @font-face rules (files named
+     assets/fonts/<Family>-<weight>[italic].woff2); once those files exist, link it here and drop the three Google links. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&amp;family=Barlow+Condensed:wght@500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&amp;display=swap">
+<link rel="stylesheet" href="./css/tokens.css">
+<link rel="stylesheet" href="./css/pitwall.css">
+<link rel="stylesheet" href="./css/views/asof.css">
+<link rel="stylesheet" href="./css/views/teams.css">
+<link rel="stylesheet" href="./css/views/team.css">
+<link rel="stylesheet" href="./css/views/events.css">
+<link rel="stylesheet" href="./css/views/event.css">
+<link rel="stylesheet" href="./css/views/match.css">
+<link rel="stylesheet" href="./css/views/compare.css">
+<link rel="stylesheet" href="./css/views/hypothetical.css">
+<link rel="stylesheet" href="./css/views/breakdown.css">
+<link rel="stylesheet" href="./css/views/models.css">
+<link rel="stylesheet" href="./css/views/offline.css">
+</head>
+<body>
+<a class="pw-skip" href="#main" data-act="skip">Skip to content</a>
+<header class="pw-shell-top">
+<div class="pw-wrap pw-top" data-open="false">
+<div class="pw-brand">
+<a class="pw-lockup pw-wordmark" href="#/teams" aria-label="PitWall, home"><svg viewBox="0 0 120 120" aria-hidden="true" focusable="false"><polyline class="pw-mark-amber" points="6,100 50,100 114,36" fill="none" stroke-width="16" stroke-linejoin="miter" stroke-miterlimit="4"/><polyline class="pw-mark-ink" points="6,80 42,80 102,20" fill="none" stroke-width="7" stroke-linejoin="miter" stroke-miterlimit="4"/></svg><span>PitWall</span></a>
+<span class="pw-small" id="pw-updated">FRC ratings from The Blue Alliance</span>
+<span class="pw-net" id="pw-net" role="status" aria-live="polite"></span>
+</div>
+<button type="button" class="pw-btn pw-controls-toggle" data-act="controls" aria-expanded="false" aria-controls="pw-controls">Controls</button>
+<div class="pw-controls" id="pw-controls"></div>
+</div>
+<div class="pw-navbar">
+<nav class="pw-nav" id="pw-nav" aria-label="Main">
+<a href="#/teams" data-nav="teams">Teams</a>
+<a href="#/team/1218" data-nav="team">Team</a>
+<a href="#/events" data-nav="events">Events</a>
+<a href="#/events" data-nav="event">Event</a>
+<a href="#/events" data-nav="match">Match</a>
+<a href="#/compare" data-nav="compare">Compare</a>
+<a href="#/hypothetical" data-nav="hypothetical">Hypothetical</a>
+<a href="#/breakdown" data-nav="breakdown">Breakdown</a>
+<a href="#/models" data-nav="models">Models</a>
+<a href="#/offline" data-nav="offline">Offline</a>
+</nav>
+</div>
+</header>
+<div class="pw-wrap"><div class="pw-notices" id="pw-notices"></div><div class="pw-notices" id="pw-update"></div></div>
+<main class="pw-main" id="main" tabindex="-1">
+<noscript><p class="pw-lede">PitWall needs JavaScript to read its data files.</p></noscript>
+<p class="pw-loading">Loading</p>
+</main>
+<p class="pw-sr" id="pw-live" role="status" aria-live="polite">Loading</p>
+<div class="pw-footer-wrap">
+<footer class="pw-footer">
+<span class="pw-small" id="pw-credits">PitWall · built by FRC 1218 · match data from <a href="https://www.thebluealliance.com" rel="noopener">The Blue Alliance</a> · EPA model from <a href="https://github.com/avgupta456/statbotics/blob/master/LICENSE" rel="noopener">Statbotics (MIT license)</a></span>
+<span class="pw-small" id="pw-disclaimer">Not affiliated with FIRST</span>
+</footer>
+</div>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

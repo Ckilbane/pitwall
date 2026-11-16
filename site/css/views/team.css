@@ -1,0 +1,6 @@
+/* Team tab. Token variables only. */
+.pw-team-actions { display: inline-flex; align-items: center; gap: var(--space-2); }
+.pw-event-link { color: var(--ink); }
+.pw-soft { color: var(--ink-muted); }
+.pw-features { display: grid; gap: 2px; color: var(--ink-muted); max-width: 1100px; }
+.pw-features b { color: var(--ink); font-weight: 600; }
