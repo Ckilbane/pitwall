@@ -16,6 +16,8 @@ import * as watchlist from '../core/watchlist.js';
 import { toCSV, csvFilename, download } from '../core/csv.js';
 import { changeCell, changeDir, changeCaption, consText, CONS_MIN_N } from '../core/features.js';
 import { asofControl, asofOptions, readAsof, normalizeSeasonAsof, seasonAsofIndex } from '../components/asof.js';
+import { rangeOf, tiers as makeTiers, tierBlurb } from '../core/ranges.js';
+import { rangeScale, rangeCell, rangeAxis } from '../charts/range.js';
 
 const PAGE = 100;
 const SETS = [
@@ -40,7 +42,7 @@ export function buildRows(S, A, { model, region, asof }) {
     let row = r;
     if (asofMode && am) {
       row = { ...r };
-      for (const k of ['epa', 'auto_epa', 'teleop_epa', 'endgame_epa']) {
+      for (const k of ['epa', 'auto_epa', 'teleop_epa', 'endgame_epa', 'epa_se']) {
         const c = am[k] && am[k][r._i];
         row[k] = c ? c[idx] : null;
       }
@@ -58,6 +60,19 @@ export function buildRows(S, A, { model, region, asof }) {
 const ordinalList = (nums) => (nums.length === 1 ? String(nums[0]) : nums.length === 2 ? `${nums[0]} and ${nums[1]}` : `${nums.slice(0, -1).join(', ')} and ${nums[nums.length - 1]}`);
 
 /** The decision sentence: who leads, where the watchlist teams stand (SPEC 5.6). */
+/** "1218 is in tier 2 with 2607, 2539 and 365, too close to separate." (null when not useful) */
+export function tierSentence(tierList, watch) {
+  for (const t of tierList) {
+    const mine = t.rows.find((r) => watch.includes(r.team));
+    if (!mine) continue;
+    const others = t.rows.filter((r) => r !== mine).map((r) => r.team);
+    if (!others.length) return `${mine.team} is alone in tier ${t.n}: no team is too close to call against it.`;
+    if (others.length > 6) return `${mine.team} is in tier ${t.n} with ${others.length} other teams that EPA can't separate.`;
+    return `${mine.team} is in tier ${t.n} with ${ordinalList(others)}: EPA can't separate them, so scout these first.`;
+  }
+  return null;
+}
+
 export function teamsLede({ rows, region, status, asof, asofLabel, watch, modelLabel }) {
   const reg = regionShort(region);
   if (!rows.length) return `No teams in ${reg === 'all teams' ? 'this season' : reg} have a rating for this view.`;
@@ -84,8 +99,9 @@ export function teamsLede({ rows, region, status, asof, asofLabel, watch, modelL
 }
 
 /** Column definitions for a column set. */
-export function columnsFor(S, set, { asofMode, traj, model, rowsAll }) {
+export function columnsFor(S, set, { asofMode, traj, model, rowsAll, view = 'list' }) {
   const keys = S.keys;
+  const rscale = view === 'tiers' ? rangeScale(rowsAll) : null;
   const has = (vk) => keys.vector.includes(vk);
   const maxEpa = Math.max(1, ...rowsAll.map((r) => r.epa));
   const cols = [];
@@ -97,9 +113,26 @@ export function columnsFor(S, set, { asofMode, traj, model, rowsAll }) {
     id: 'epa', label: 'EPA', n: true, sortable: true, get: (r) => r.epa, csv: 'EPA (points per match)', csvValue: (r) => round1(r.epa),
     render: (r) => html`<span class="pw-cell-bar">${!asofMode && r.count < 6 ? html`<span class="pw-small">n = ${r.count}</span>` : ''}${raw(barCell(r.epa, maxEpa, 120, rating(r.epa)))}</span>`,
   };
+  const RW = (typeof window !== 'undefined' && window.innerWidth < 600) ? 150 : 240;
+  const rangeBarCol = rscale ? {
+    id: 'rangebar', label: RW < 200 ? 'Range' : 'Where they could really be', thClass: 'pw-th-range', sortable: false, noCsv: true,
+    headExtra: raw(rangeAxis(rscale, RW)),
+    render: (r, i, ctx) => raw(rangeCell(r, rscale, { you: ctx && ctx.watch && ctx.watch.has(r.team), width: RW })),
+  } : null;
+  if (rscale) {
+    for (const c of cols) if (c.id === 'watch' || c.id === 'name') c.cls = 'pw-hide-narrow';
+    epaCol.render = (r) => html`<span class="pw-cell-bar">${!asofMode && r.count < 6 ? html`<span class="pw-small">n = ${r.count}</span>` : ''}${rating(r.epa)}</span>`;
+  }
+  const rangeCol = {
+    id: 'range', label: 'Likely range', n: true, sortable: false,
+    get: (r) => rangeOf(r.epa, r.epa_se),
+    render: (r) => { const g = rangeOf(r.epa, r.epa_se); return g ? `${rating(g.lo, 0)}–${rating(g.hi, 0)}` : '–'; },
+    csv: 'Likely range low (points per match)', csvValue: (r) => { const g = rangeOf(r.epa, r.epa_se); return g ? round1(g.lo) : null; },
+  };
+  const rangeHi = { id: 'range_hi', label: 'Range high', noShow: true, get: (r) => (rangeOf(r.epa, r.epa_se) || {}).hi, render: () => '', csv: 'Likely range high (points per match)', csvValue: (r) => { const g = rangeOf(r.epa, r.epa_se); return g ? round1(g.hi) : null; } };
   const num = (id, label, key, csvLabel, f = rating, nd = 1) => ({ id, label, n: true, sortable: true, get: (r) => r[key], render: (r) => f(r[key]), csv: csvLabel || `${label} (points per match)`, csvValue: (r) => (typeof r[key] === 'number' ? Number(r[key].toFixed(nd)) : null) });
   if (set === 'ratings') {
-    cols.push(epaCol, num('auto', 'Auto', 'auto_epa'), num('teleop', 'Teleop', 'teleop_epa'), num('endgame', 'Endgame', 'endgame_epa'));
+    cols.push(epaCol, ...(rangeBarCol ? [rangeBarCol] : []), rangeCol, rangeHi, num('auto', 'Auto', 'auto_epa'), num('teleop', 'Teleop', 'teleop_epa'), num('endgame', 'Endgame', 'endgame_epa'));
     if (!asofMode) {
       cols.push({ id: 'norm', label: 'Norm EPA', n: true, sortable: true, get: (r) => r.norm_epa, render: (r) => int(r.norm_epa), csv: 'Norm EPA (1500 = average)', csvValue: (r) => r.norm_epa });
       cols.push({ id: 'record', label: 'Record', n: true, sortable: true, get: (r) => (r.count ? r.winrate : null), render: (r) => (r.count ? record(r.wins, r.losses, r.ties) : '–'), csv: 'Record (W-L-T)', csvValue: (r) => (r.count ? record(r.wins, r.losses, r.ties) : '') });
@@ -203,6 +236,7 @@ export async function render(ctx) {
   const modelLabel = (manifest.models.find((m) => m.id === model) || { label: 'EPA' }).label;
   const region = q.region || manifest.default_region || 'all';
   const set = SETS.some((s) => s.id === q.cols) ? q.cols : 'ratings';
+  const view = q.view === 'list' ? 'list' : 'tiers';
   const asofOpts = asofOptions(S);
   const asofLabel = (asofOpts.find((o) => o.id === asofId) || { label: 'End of season' }).label;
   const live = S.status === 'live';
@@ -220,7 +254,11 @@ export async function render(ctx) {
   const eyebrowWhen = asofMode ? asofLabel.toLowerCase() : (live ? 'latest data' : 'end of season');
   const regName = regionLabel(region);
   const h1 = `${region === 'all' ? 'All' : regName} teams by ${modelLabel}`;
-  const lede = teamsLede({ rows: allRows, region, status: S.status, asof: asofId, asofLabel, watch: [...watchSet], modelLabel });
+  const tierList = makeTiers(allRows);
+  const tierOf = new Map();
+  tierList.forEach((t) => t.rows.forEach((r, k) => tierOf.set(r.team, { t, first: k === 0 })));
+  const tierLine = effSet === 'ratings' ? tierSentence(tierList, [...watchSet]) : null;
+  const lede = teamsLede({ rows: allRows, region, status: S.status, asof: asofId, asofLabel, watch: [...watchSet], modelLabel }) + (tierLine ? ` ${tierLine}` : '');
 
   mount(root, html`
 <section class="pw-head">
@@ -233,6 +271,7 @@ export async function render(ctx) {
 <label class="pw-field"><span class="pw-eyebrow">Region</span>
 <select class="pw-select" id="teams-region" data-act="region">${regionOpts.map((o) => html`<option value="${o.id}"${o.id === region ? html` selected` : ''}>${o.label}</option>`)}</select></label>
 ${asofControl({ scope: 'season', value: asofId, options: asofOpts, id: 'teams-asof' })}
+${effSet === 'ratings' ? seg({ label: 'Layout', act: 'view', value: view, options: [{ id: 'tiers', label: 'Tiers' }, { id: 'list', label: 'Ranked list' }] }) : ''}
 ${seg({ label: 'Columns', act: 'cols', value: effSet, options: SETS.map((s) => ({ ...s, disabled: asofMode ? s.id !== 'ratings' : (s.id === 'robot' && !robotOk) })) })}
 </div>
 <div class="pw-filters__group">
@@ -244,7 +283,8 @@ ${asofMode ? html`<p class="pw-small" role="note">Components, ranking points and
 <figure class="pw-figure pw-figure--flush" id="teams-fig" aria-labelledby="teams-fig-t"></figure>`);
   const fig = root.querySelector('#teams-fig');
 
-  const cols = () => columnsFor(S, effSet, { asofMode, traj, model, rowsAll: allRows });
+  const effView = effSet === 'ratings' ? view : 'list';
+  const cols = () => columnsFor(S, effSet, { asofMode, traj, model, rowsAll: allRows, view: effView });
 
   function paint() {
     const columns = cols();
@@ -261,9 +301,16 @@ ${asofMode ? html`<p class="pw-small" role="note">Components, ranking points and
         : `All ${n} ${regionShort(region)} teams, ${season}`;
     const hasCons = columns.some((c) => c.id === 'cons');
     const hasChange = columns.some((c) => c.id === 'change');
+    const grouped = effView === 'tiers' && byEpa && !query;
     const table = dataTable({
       columns: columns.filter((c) => !c.noShow).map((c) => ({ ...c, render: (r, i) => c.render(r, i, { watch: watchSet }) })),
       rows: shown, sort, labelledby: 'teams-fig-t',
+      groupRow: grouped ? (r, i) => {
+        const e = tierOf.get(r.team);
+        if (!e || !(e.first || i === 0)) return null;
+        const next = tierList[e.t.n];
+        return html`<span class="pw-tier__name">Tier ${e.t.n}</span><span class="pw-tier__blurb">${tierBlurb(e.t, next)}${e.first ? '' : ' (continued)'}</span>`;
+      } : null,
       rowClass: (r) => (watchSet.has(r.team) ? 'you' : ''),
       rowAttrs: (r) => `data-team="${r.team}"`,
     });
@@ -272,12 +319,14 @@ ${asofMode ? html`<p class="pw-small" role="note">Components, ranking points and
       !asofMode && effSet === 'ratings' ? html` <b>Norm EPA:</b> EPA rescaled so 1500 is average across all teams worldwide; comparable across seasons. <b>Record:</b> wins-losses-ties, all ${season} matches.` : '',
       !asofMode && hasCons ? html` <b>Consistency:</b> SD of match residuals (actual minus predicted, points) over n qual matches; blank below n = 4; bars show the last 12 residuals.` : '',
       hasChange ? html` <b>Differs from pre-event:</b> ${changeCaption()}` : '',
-      html` <b>Bars:</b> EPA, same scale on every row. <b>n = k:</b> rating rests on fewer than 6 matches, treat as a guess.`,
+      effView === 'tiers'
+        ? html` <b>Range bars:</b> the dot is the best estimate; the band fades out across the likely range, where the team's true level sits about 95% of the time (checked on 2025 and 2026 matches the model was not tuned on). Same scale on every row. <b>Tiers:</b> a new tier starts when its first team is at least 90% likely to be below the team at the top of the tier above; within a tier the order means little. <b>n = k:</b> rating rests on fewer than 6 matches.`
+        : html` <b>Bars:</b> EPA, same scale on every row. <b>Likely range:</b> where the team's true level sits about 95% of the time. <b>n = k:</b> rating rests on fewer than 6 matches, treat as a guess.`,
       html` n = ${n} ${regionShort(region)} teams. CSV downloads all ${filtered.length} rows in this view. Source: The Blue Alliance, fetched ${dateTime(S.generated_at)}.`,
     ];
     mount(fig, html`<div class="pw-figure__pad">
 <h2 class="pw-figure__title" id="teams-fig-t">${ttl}</h2>
-<p class="pw-figure__sub">Sorted by ${sortCol.csv ? sortCol.label : sortCol.label}, ${sort.dir < 0 ? 'highest' : 'lowest'} first. ${effSet === 'ratings' ? `Ratings are ${modelLabel} in points per match.` : ''} Click a column to sort.</p>
+<p class="pw-figure__sub">${grouped ? `Grouped into ${tierList.length} tiers by how far apart the ranges are. ` : ''}Sorted by ${sortCol.label}, ${sort.dir < 0 ? 'highest' : 'lowest'} first. ${effSet === 'ratings' ? `Ratings are ${modelLabel} in points per match.` : ''} Click a column to sort.</p>
 </div>
 ${table}
 <figcaption class="pw-caption pw-caption--row"><span>${defs}</span>${shown.length < filtered.length ? html`<button type="button" class="pw-btn" data-act="show-all">Show all ${filtered.length}</button>` : ''}</figcaption>`);
@@ -313,6 +362,8 @@ ${table}
       if (b) b.focus();
     } else if (act === 'watch') {
       watchlist.toggle(Number(t.dataset.team));
+    } else if (act === 'view') {
+      state.setQuery({ view: t.dataset.value === 'tiers' ? null : t.dataset.value }, { replace: true });
     } else if (act === 'cols') {
       state.setQuery({ cols: t.dataset.value === 'ratings' ? null : t.dataset.value, sort: null }, { replace: true });
     } else if (act === 'show-all') {

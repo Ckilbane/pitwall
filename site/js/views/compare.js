@@ -15,6 +15,27 @@ import { teamChip, watchButton } from '../components/team.js';
 import { smallMultiples } from '../charts/multiples.js';
 import { groupedBars } from '../charts/bars.js';
 import { lineDataTable } from '../charts/line.js';
+import { rangeOf, pMatchAbove, verdict, outOf10 } from '../core/ranges.js';
+import { distCurves } from '../charts/range.js';
+
+/** Head-to-head block for 2-4 rows (exported for tests): {title, text, pairs}. */
+export function headToHead(rows) {
+  if (rows.length < 2) return null;
+  const s = rows.slice().sort((a, b) => (b.epa ?? -1e9) - (a.epa ?? -1e9));
+  if (rows.length === 2) {
+    const v = verdict(pMatchAbove(rows[0], rows[1]), rows[0], rows[1]);
+    return { title: v.head, text: v.text, pairs: [] };
+  }
+  const pairs = [];
+  for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) pairs.push({ a: s[i], b: s[j], p: pMatchAbove(s[i], s[j]) });
+  const close = pairs.filter((x) => x.p !== null && x.p < 0.56);
+  const v = verdict(pMatchAbove(s[0], s[1]), s[0], s[1]);
+  const title = `${v.head} at the top`;
+  const text = close.length
+    ? `${v.text} Too close to call: ${close.map((x) => `${x.a.team} vs ${x.b.team}`).join(', ')}.`
+    : v.text;
+  return { title, text, pairs };
+}
 
 const MAX = 4;
 
@@ -73,6 +94,7 @@ export async function render(ctx) {
       { id: 'team', label: 'Team', td: 'team', render: (r) => teamChip(r.team, { season, model }) },
       { id: 'name', label: 'Name', render: (r) => r.name || '' },
       { id: 'epa', label: modelName, n: true, render: (r) => rating(r.epa) },
+      { id: 'range', label: 'Likely range', n: true, render: (r) => { const g = rangeOf(r.epa, r.epa_se); return g ? `${rating(g.lo, 0)}–${rating(g.hi, 0)}` : '–'; } },
       { id: 'gap', label: 'Vs leader', n: true, render: (r) => (r === lead ? 'leader' : delta(r.epa - lead.epa)) },
       { id: 'auto', label: 'Auto', n: true, render: (r) => rating(r.auto_epa) },
       { id: 'teleop', label: 'Teleop', n: true, render: (r) => rating(r.teleop_epa) },
@@ -125,7 +147,20 @@ export async function render(ctx) {
 
     draws.mult = (w) => smallMultiples({ series, context: true, panelWidth: w >= 640 ? Math.floor((w - 16) / 2) : w, cols: w >= 640 ? 2 : 1, x: { title: 'Matches played (count)' }, y: { title: `${modelName} (points per match)` }, ariaLabel: `${modelName} after each match; the other compared teams in grey.` });
     draws.phase = (w) => groupedBars({ width: Math.max(320, w), groups: phases.map(([k, label]) => ({ label, values: rows.map((r) => ({ label: String(r.team), value: r[k], you: watchlist.has(r.team) })) })), axisTitle: `${modelName} (points per match)`, ariaLabel: `${modelName} auto, teleop and endgame for ${rows.map((r) => r.team).join(', ')}` });
+    const h2h = headToHead(rows);
+    const curveTeams = rows.map((r) => ({ row: r, role: watchlist.has(r.team) ? 'you' : (rows.length === 2 ? 'focus' : 'context') }));
+    if (rows.length > 2 && !curveTeams.some((t) => t.role === 'you')) curveTeams[0].role = 'focus';
+    draws.curves = (w) => distCurves({ teams: curveTeams, width: Math.max(300, w), unitLabel: `Points added in one match (${modelName})`, ariaLabel: `How much each team's points swing from match to match: ${rows.map((r) => `${r.team} centered at ${rating(r.epa)}`).join(', ')}` });
+    const oddsTable = h2h && h2h.pairs.length ? html`<table class="pw-odds"><caption class="pw-small" style="caption-side: bottom; text-align: left; padding-top: 6px">Matches out of 10 in which the row team would add more points than the column team.</caption>
+<thead><tr><th scope="col"><span class="pw-sr">Team</span></th>${rows.map((c) => html`<th scope="col">${c.team}</th>`)}</tr></thead>
+<tbody>${rows.map((r) => html`<tr><th scope="row">${r.team}</th>${rows.map((c) => { if (c === r) return html`<td>–</td>`; const p = pMatchAbove(r, c); return html`<td>${p === null ? '–' : outOf10(p)}</td>`; })}</tr>`)}</tbody></table>` : '';
     body = html`
+${h2h ? figure({
+    id: 'cmp-h2h', title: h2h.title,
+    sub: h2h.text,
+    body: html`<div class="pw-chart" data-chart="curves"></div><p class="pw-legend">${curveTeams.map((t) => html`<span class="pw-legend__item"><span class="pw-swatch pw-swatch--${t.role}" aria-hidden="true"></span>${t.row.team} · ${rating(t.row.epa)}</span>`)}</p>${oddsTable}`,
+    caption: html`<b>Curves:</b> how many points each team adds in a single match: the peak is its ${modelName}, the width is how much its points swing from match to match. Where curves overlap, either team can come out ahead. ${rows.map((r) => html`<span class="pw-nowrap">${r.team}: ${r.count} matches</span>`).reduce((a, b) => html`${a}, ${b}`)}. Points a robot adds, not alliance wins. Source: The Blue Alliance.`,
+  }) : ''}
 <section class="pw-section" aria-labelledby="cmp-stats">
 <h2 class="pw-h2" id="cmp-stats">Ratings side by side</h2>
 ${dataTable({ columns: statCols, rows, labelledby: 'cmp-stats', rowClass: (r) => (watchlist.has(r.team) ? 'you' : '') })}

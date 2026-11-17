@@ -207,7 +207,7 @@ def test_exported_field_sets():
         s.add("e1", 30.0, 30.0 + r)
     f = F.compute(s.run(), {})
     assert set(f.team_year[1]) == {"cons_sd", "cons_n", "change_flag", "change_event", "change_z",
-                                   "opp_effect", "opp_effect_se", "opp_n"}
+                                   "opp_effect", "opp_effect_se", "opp_n", "epa_se", "match_sd"}
     assert set(f.team_event[(1, "e1")]) == {"change_k", "change_mean_resid", "change_z", "change_flag"}
     assert F.CONFIG["z_threshold"] == 3.0
 
@@ -271,3 +271,17 @@ def test_shards_accept_features(mini_runs, tmp_path):
     doc = json.loads(gzip.open(tmp_path / "2023" / "season.json.gz").read())
     col = doc["teams"]["models"]["epa"]["cons_sd"]
     assert any(v is not None for v in col)
+
+
+def test_range_se_shrinks_and_caps():
+    cfg = F.CONFIG
+    msd0, se0 = F.range_se([], 10.0, cfg, "epa")
+    assert msd0 == pytest.approx(10.0)
+    assert se0 == pytest.approx(1.80 * 10.0 / math.sqrt(5))
+    # many matches with a small spread: match_sd pulled from 10 toward ~1, epa_se capped at nmax = 6
+    rs = [(-1) ** i for i in range(40)]
+    msd, se = F.range_se(rs, 10.0, cfg, "epa")
+    assert 1.0 < msd < 10.0
+    assert se == pytest.approx(1.80 * msd / math.sqrt(6))
+    assert F.range_se(rs, 10.0, cfg, "fast")[1] == pytest.approx(1.71 * msd / math.sqrt(6))
+    assert F.range_se(rs, None, cfg, "epa") == (None, None)
