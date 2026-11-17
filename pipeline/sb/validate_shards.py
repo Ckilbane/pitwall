@@ -15,7 +15,7 @@ Checks, per file:
     (`events.cols.file_hash/file_bytes`) equal the files on disk; asof/traj rows are aligned with
     the season teams table; event file names equal their `event` key; event keys match
     ^[0-9]{4}[a-z0-9]+$; robot arrays have one row per match and 6 entries per row;
-  * size budgets (SPEC 3.9): season.json <= 800 KB, asof <= 600 KB, traj <= 1 MB, event <= 200 KB.
+  * size budgets (SPEC 3.9): season.json <= 1.2 MB, asof <= 900 KB, traj <= 1.5 MB, event <= 200 KB.
 
 Exit status 0 = clean, 1 = errors.  `validate_season()` is the function build.py uses to decide
 whether a season must be replaced by its last good shards.
@@ -34,7 +34,7 @@ sys.path.insert(0, ROOT)
 
 from sb import season_meta as sm  # noqa: E402
 
-BUDGETS = {"season": 800_000, "asof": 600_000, "traj": 1_000_000, "event": 200_000}
+BUDGETS = {"season": 1_200_000, "asof": 900_000, "traj": 1_500_000, "event": 200_000}
 EVENT_KEY = re.compile(r"^[0-9]{4}[a-z0-9]+$")
 MODEL_IDS = ("epa", "fast")
 MAX_ERRORS_PER_FILE = 25

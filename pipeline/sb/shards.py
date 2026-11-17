@@ -231,8 +231,8 @@ def fallback_backtest(year: int, run: Any, order: List[Any], config_hash: str = 
         return _metrics_from([r for r in rows if pred(r)], rp_keys)
 
     slices: Dict[str, Any] = {
-        "week": {str(w): sl(lambda r, w=w: r["week"] == w) for w in range(1, 9)
-                 if any(r["week"] == w for r in rows)},
+        "week": {str(w): sl(lambda r, w=w: r["week"] == w)
+                 for w in sorted({r["week"] for r in rows if isinstance(r["week"], int) and r["week"] >= 1})},
         "event_type": {t: sl(lambda r, t=t: r["etype"] == t)
                        for t in ("regional", "district", "district_cmp", "champs_div", "einstein")
                        if any(r["etype"] == t for r in rows)},

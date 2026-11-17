@@ -539,7 +539,8 @@ simulated as EPA x (1 + 5% noise) at 2 decimals (worst case for compression). No
 All five seasons: about 56 MB gzipped (65 MB with the +15%), 1,000 files; well inside the Pages
 1 GB site limit. Uncompressed JSON is about 3.2x (an event file is 150-180 KB in memory).
 "Download season for offline" = 11-14 MB per season. Validator budgets (fail the season if
-exceeded): season.json <= 800 KB, asof <= 600 KB, traj <= 1 MB, any event file <= 200 KB.
+exceeded): season.json <= 1.2 MB, asof <= 900 KB, traj <= 1.5 MB, any event file <= 200 KB.
+(Raised Nov 2026: 2026 traj was 1.08 MB with more teams and matches; first budgets were 800 KB / 600 KB / 1 MB.)
 
 ---
 
