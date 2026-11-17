@@ -3,6 +3,7 @@
 //
 //   dataTable({columns, rows, sort: {col, dir: 1|-1}, rowClass(row), rowAttrs(row), label, labelledby})
 //     column: {id, label, n, td: 'team', sortable, sticky: 'a'|'b', render(row, i) -> string|SafeHTML, title}
+//     groupRow(row, i) -> null | string|SafeHTML: a full-width header row (scope=colgroup) before this row
 //   sortRows(rows, getter, dir) -> new array, nulls last, stable
 import { html, raw, esc, SafeHTML } from '../core/html.js';
 
@@ -26,22 +27,24 @@ export function dataTable(o) {
   const { columns, rows } = o;
   const sort = o.sort || {};
   const head = columns.map((c) => {
-    const cls = [c.n ? 'n' : '', c.sticky ? `pw-sticky-${c.sticky}` : '', c.thClass || ''].filter(Boolean).join(' ');
+    const cls = [c.n ? 'n' : '', c.sticky ? `pw-sticky-${c.sticky}` : '', c.thClass || '', c.cls || ''].filter(Boolean).join(' ');
     const active = sort.col === c.id;
     const ariaSort = c.sortable ? ` aria-sort="${active ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'}"` : '';
     const inner = c.sortable
       ? `<button type="button" class="pw-sort" data-act="sort" data-col="${esc(c.id)}">${esc(c.label)}${active ? `<span aria-hidden="true">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</button>`
       : esc(c.label);
-    return `<th scope="col"${cls ? ` class="${cls}"` : ''}${ariaSort}>${inner}</th>`;
+    return `<th scope="col"${cls ? ` class="${cls}"` : ''}${ariaSort}>${inner}${c.headExtra ? cellHtml(c.headExtra) : ''}</th>`;
   }).join('');
   const body = rows.map((row, i) => {
     const rc = o.rowClass ? o.rowClass(row) : '';
     const ra = o.rowAttrs ? o.rowAttrs(row) : '';
     const tds = columns.map((c) => {
-      const cls = [c.n ? 'n' : '', c.td || '', c.sticky ? `pw-sticky-${c.sticky}` : ''].filter(Boolean).join(' ');
+      const cls = [c.n ? 'n' : '', c.td || '', c.sticky ? `pw-sticky-${c.sticky}` : '', c.cls || ''].filter(Boolean).join(' ');
       return `<td${cls ? ` class="${cls}"` : ''}>${cellHtml(c.render(row, i))}</td>`;
     }).join('');
-    return `<tr${rc ? ` class="${rc}"` : ''}${ra ? ` ${ra}` : ''}>${tds}</tr>`;
+    const g = o.groupRow ? o.groupRow(row, i) : null;
+    const gh = g ? `<tr class="pw-tier"><th colspan="${columns.length}" scope="colgroup">${cellHtml(g)}</th></tr>` : '';
+    return `${gh}<tr${rc ? ` class="${rc}"` : ''}${ra ? ` ${ra}` : ''}>${tds}</tr>`;
   }).join('');
   const aria = o.labelledby ? `aria-labelledby="${esc(o.labelledby)}"` : `aria-label="${esc(o.label || 'Table')}"`;
   return raw(`<div class="pw-scroll" tabindex="0" role="region" ${aria}><table class="pw-table" ${aria}><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`);

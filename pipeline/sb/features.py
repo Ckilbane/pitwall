@@ -23,6 +23,11 @@ Opponent      o_j = opposing alliance's actual no_foul - its predicted no_foul (
               slot 0), a whole-alliance quantity (not divided by 3).  opp_effect = mean o_j,
               opp_effect_se = SD / sqrt(n); all None below `opp_min_n` (12).  Experimental.
 
+Ranges       match_sd = SD of a team's resid, shrunk toward sigma (k0 pseudo-matches);
+              epa_se = c * match_sd / sqrt(min(n + n0, nmax)). Calibrated so that
+              EPA +- 1.96 * epa_se held the team's next-6-match level ~95% of the time
+              (2022-2024 fit; 2025 and 2026 held out). se_timeline gives epa_se after each update.
+
 Nothing here changes a model or reads a match before it is played: it is a pure function of a
 finished ModelRun, and every number is a summary of residuals the model already produced.
 """
@@ -39,6 +44,11 @@ CONFIG: Dict[str, Any] = {
     "cons_min_n": 4,       # consistency needs at least this many matches
     "opp_min_n": 12,       # opponent effect needs at least this many matches
     "opp_sig_mult": 2.0,   # the site shows opp_effect only when |opp_effect| > this * opp_effect_se
+    # EPA ranges (calibrated on 2022-2024 quals; see pipeline/validate/ranges.md)
+    "range_c": {"epa": 1.80, "fast": 1.71},  # scale so EPA +- 1.96*epa_se covers ~95%
+    "range_k0": 8,         # match_sd shrinks toward the season's pooled SD with this many pseudo-matches
+    "range_n0": 5,         # effective matches behind a rating = min(n + n0, nmax)
+    "range_nmax": 6,       # EPA keeps adapting, so its memory is short
 }
 
 
@@ -74,6 +84,23 @@ def _pre_total(run: Any, m: Any, team: int) -> Optional[float]:
     return None if x is None else float(x)
 
 
+def range_se(resids: List[float], sigma: Optional[float], cfg: Dict[str, Any], model_id: str) -> Tuple[Optional[float], Optional[float]]:
+    """(match_sd, epa_se) from a team's qual residuals so far."""
+    if not sigma or sigma <= 0:
+        return None, None
+    n = len(resids)
+    k0 = float(cfg["range_k0"])
+    ss = 0.0
+    if n >= 2:
+        a = np.asarray(resids, dtype=float)
+        ss = float(((a - a.mean()) ** 2).sum())
+    sig2 = (k0 * sigma * sigma + ss) / (k0 + max(n - 1, 0))
+    c = float((cfg.get("range_c") or {}).get(model_id, 1.8))
+    neff = min(n + float(cfg["range_n0"]), float(cfg["range_nmax"]))
+    msd = math.sqrt(sig2)
+    return msd, c * msd / math.sqrt(neff)
+
+
 def _num(x: Any) -> Optional[float]:
     if x is None:
         return None
@@ -100,6 +127,7 @@ def compute(run: Any, events: Dict[str, Any], config: Optional[Dict[str, Any]] =
     opp_pred: Dict[int, List[float]] = {}
     opp_teams: Dict[int, List[int]] = {}
     all_resid: List[float] = []
+    res_seq: Dict[int, List[Tuple[int, float]]] = {}
     pos_resid: Dict[int, List[float]] = {}             # resid of the 1st, 2nd, 3rd qual at an event
 
     for seq, m in enumerate(order):
@@ -127,6 +155,7 @@ def compute(run: Any, events: Dict[str, Any], config: Optional[Dict[str, Any]] =
                     continue
                 r = a0 - pre0
                 season_resid.setdefault(t, []).append(r)
+                res_seq.setdefault(t, []).append((seq, r))
                 all_resid.append(r)
                 lst = ev_attr.setdefault(key, [])
                 if len(lst) < k_max:
@@ -143,6 +172,16 @@ def compute(run: Any, events: Dict[str, Any], config: Optional[Dict[str, Any]] =
 
     sigma = _sd(all_resid)
     feats = SeasonFeatures(sigma=sigma, n_resid=len(all_resid), config=dict(cfg))
+    mid = getattr(run, "model_id", "epa")
+    se_timeline: Dict[int, List[Tuple[int, float]]] = {}
+    for t, seqs in res_seq.items():
+        rs: List[float] = []
+        tl = []
+        for sq, r in seqs:
+            rs.append(r)
+            tl.append((sq, range_se(rs, sigma, cfg, mid)[1]))
+        se_timeline[t] = tl
+    se_start = range_se([], sigma, cfg, mid)[1]
     zthr = float(cfg["z_threshold"])
 
     # ---- change detector, per team-event ----
@@ -170,6 +209,7 @@ def compute(run: Any, events: Dict[str, Any], config: Optional[Dict[str, Any]] =
             "change_flag": None, "change_event": None, "change_z": None,
             "opp_effect": None, "opp_effect_se": None, "opp_n": None,
         }
+        ty["match_sd"], ty["epa_se"] = range_se(rs, sigma, cfg, mid)
         flagged = [k for k in by_team_events.get(t, []) if feats.team_event[k]["change_flag"] is not None]
         if flagged:
             last = max(flagged, key=lambda k: ev_first_seq.get(k, -1))
@@ -187,7 +227,7 @@ def compute(run: Any, events: Dict[str, Any], config: Optional[Dict[str, Any]] =
     feats.detail = {
         "season_resid": season_resid, "ev_prior_n": ev_prior_n, "ev_first_seq": ev_first_seq,
         "team_events_seen": team_events_seen, "ev_attr": ev_attr,
-        "pos_resid": pos_resid, "opp_o": opp_o, "opp_pred": opp_pred, "opp_teams": opp_teams,
+        "pos_resid": pos_resid, "se_timeline": se_timeline, "se_start": se_start, "opp_o": opp_o, "opp_pred": opp_pred, "opp_teams": opp_teams,
     }
     return feats
 

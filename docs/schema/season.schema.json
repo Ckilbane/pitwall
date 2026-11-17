@@ -77,7 +77,7 @@
     {
      "properties": {
       "cols": {"required": ["team", "name", "country", "state", "district", "rookie_year", "wins", "losses", "ties", "count", "winrate", "next_event_key", "next_event_week", "events"]},
-      "models": {"required": ["epa", "fast"], "additionalProperties": {"required": ["epa_start", "epa_pre_champs", "epa_max", "epa", "auto_epa", "teleop_epa", "endgame_epa", "unitless_epa", "norm_epa", "total_epa_rank", "total_epa_percentile", "total_team_count", "country_epa_rank", "country_epa_percentile", "country_team_count", "state_epa_rank", "state_epa_percentile", "state_team_count", "district_epa_rank", "district_epa_percentile", "district_team_count", "cons_sd", "cons_n", "change_flag", "change_event", "change_z", "opp_effect", "opp_effect_se", "opp_n"]}}
+      "models": {"required": ["epa", "fast"], "additionalProperties": {"required": ["epa_start", "epa_pre_champs", "epa_max", "epa", "auto_epa", "teleop_epa", "endgame_epa", "unitless_epa", "norm_epa", "total_epa_rank", "total_epa_percentile", "total_team_count", "country_epa_rank", "country_epa_percentile", "country_team_count", "state_epa_rank", "state_epa_percentile", "state_team_count", "district_epa_rank", "district_epa_percentile", "district_team_count", "cons_sd", "cons_n", "change_flag", "change_event", "change_z", "opp_effect", "opp_effect_se", "opp_n", "epa_se", "match_sd"]}}
      }
     }
    ]
@@ -187,7 +187,7 @@
      "required": ["epa", "fast"],
      "additionalProperties": {
       "type": "object",
-      "required": ["epa", "auto_epa", "teleop_epa", "endgame_epa"],
+      "required": ["epa", "auto_epa", "teleop_epa", "endgame_epa", "epa_se"],
       "additionalProperties": {"type": "array", "items": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": ["number", "null"]}}}
      }
     }

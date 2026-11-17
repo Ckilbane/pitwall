@@ -297,3 +297,41 @@ th[aria-sort="ascending"] .pw-sort, th[aria-sort="descending"] .pw-sort { color:
 
 /* screen-reader-only text */
 .pw-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---- EPA ranges and tiers (SPEC 5.10) ---- */
+.pw-range { position: relative; display: inline-block; height: 16px; vertical-align: middle; }
+.pw-range::before { content: ""; position: absolute; left: 0; right: 0; top: 7.5px; height: 1px; background: var(--rule); }
+.pw-range__band { position: absolute; top: 2px; height: 12px; border-radius: 6px;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--context) 70%, transparent) 30%, color-mix(in srgb, var(--context) 70%, transparent) 70%, transparent 100%); }
+.pw-range__dot { position: absolute; top: 3px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.pw-range--you .pw-range__band { background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--highlight) 70%, transparent) 30%, color-mix(in srgb, var(--highlight) 70%, transparent) 70%, transparent 100%); }
+.pw-th-range { text-align: left; }
+.pw-range-axis { margin-top: 4px; }
+.pw-range--you .pw-range__dot { background: var(--highlight); }
+.pw-table tr.you .pw-range__dot { box-shadow: 0 0 0 2px var(--highlight-tint); }
+.pw-range-axis { position: relative; display: block; height: 14px; margin-top: 2px; font: var(--type-tick); color: var(--ink-subtle); font-weight: 400; }
+.pw-range-axis span { position: absolute; transform: translateX(-50%); }
+.pw-table tr.pw-tier th { text-align: left; padding: var(--space-4) var(--space-3) var(--space-2); background: var(--surface-sunk, var(--paper)); border-bottom: 1px solid var(--rule); }
+.pw-tier__name { font: 600 18px/1.2 var(--font-display); margin-right: var(--space-2); }
+.pw-tier__blurb { font: 400 14px var(--font-sans); color: var(--ink-muted); }
+.pw-legend-range { display: inline-flex; align-items: center; gap: var(--space-2); }
+.pw-legend-range .pw-range { width: 44px; }
+.pw-curve { stroke-width: 2; stroke-linejoin: round; }
+.pw-curve--you { fill: color-mix(in srgb, var(--highlight) 22%, transparent); stroke: var(--highlight); }
+.pw-curve--focus { fill: color-mix(in srgb, var(--ink) 12%, transparent); stroke: var(--ink); }
+.pw-curve--context { fill: color-mix(in srgb, var(--context) 14%, transparent); stroke: var(--context); }
+.pw-curve-mid { stroke-width: 1.5; stroke-dasharray: 3 3; }
+.pw-curve-mid--you { stroke: var(--highlight); } .pw-curve-mid--focus { stroke: var(--ink); } .pw-curve-mid--context { stroke: var(--context); }
+.pw-verdict { display: flex; flex-direction: column; gap: var(--space-2); }
+.pw-verdict__head { font: 600 30px/1.1 var(--font-display); margin: 0; }
+.pw-verdict__text { font: var(--type-lede, 400 18px/1.55 var(--font-serif)); margin: 0; max-width: 62ch; }
+.pw-odds { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.pw-odds th, .pw-odds td { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: center; }
+.pw-odds th[scope=row] { text-align: left; }
+.pw-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: var(--space-2) 0; font: 400 14px var(--font-sans); color: var(--ink-muted); }
+.pw-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.pw-swatch { width: 14px; height: 10px; border-radius: 2px; border: 2px solid; }
+.pw-swatch--you { border-color: var(--highlight); background: color-mix(in srgb, var(--highlight) 22%, transparent); }
+.pw-swatch--focus { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 12%, transparent); }
+.pw-swatch--context { border-color: var(--context); background: color-mix(in srgb, var(--context) 14%, transparent); }
+@media (max-width: 599px) { .pw-table .pw-hide-narrow { display: none; } }

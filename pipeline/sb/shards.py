@@ -301,7 +301,7 @@ _EVENT_MODEL_FIELDS = [
     "epa_rp_2_error", "epa_rp_2_acc", "epa_rp_3_error", "epa_rp_3_acc",
 ]
 _FEATURE_TY = ["cons_sd", "cons_n", "change_flag", "change_event", "change_z", "opp_effect",
-               "opp_effect_se", "opp_n"]
+               "opp_effect_se", "opp_n", "epa_se", "match_sd"]
 
 
 def _vec(d: Optional[Dict[str, Any]], vk: Sequence[str]) -> List[Optional[float]]:
@@ -632,6 +632,10 @@ def write_season(
             d["opp_effect"].append(rnd(f.get("opp_effect"), 2))
             d["opp_effect_se"].append(rnd(f.get("opp_effect_se"), 2))
             d["opp_n"].append(_fi(f.get("opp_n")))
+            fd = getattr((features or {}).get(mid), "detail", None) or {}
+            fsig = getattr((features or {}).get(mid), "sigma", None)
+            d["epa_se"].append(rnd(f.get("epa_se", fd.get("se_start")), 2))
+            d["match_sd"].append(rnd(f.get("match_sd", fsig), 2))
     teams_t = _table(len(teams_sorted), tcols, tmodels)
 
     # ---- events table (season.json) ----
@@ -724,6 +728,11 @@ def write_season(
     asof_models = {}
     for mid in MODELS:
         out = {k: [] for k in ("epa", "auto_epa", "teleop_epa", "endgame_epa")}
+        out["epa_se"] = []
+        fobj = (features or {}).get(mid)
+        fdet = getattr(fobj, "detail", None) or {}
+        se_tl = fdet.get("se_timeline") or {}
+        se0 = fdet.get("se_start")
         ent = asof_entries[mid]
         for t in teams_sorted:
             lst = ent.get(t.team, [])
@@ -741,13 +750,21 @@ def write_season(
                 if wk not in by_week or sq > by_week[wk][0]:
                     by_week[wk] = (sq, vec)
             pts = [start]
+            tl = se_tl.get(t.team, [])
+            ses = [rnd(se0, 2)]
             best: Optional[Tuple[int, List[Optional[float]]]] = None
             for w in range(1, 9):
                 if w in by_week and (best is None or by_week[w][0] > best[0]):
                     best = by_week[w]
                 pts.append(best[1] if best else start)
-            for j, k in enumerate(out):
+                if best is None:
+                    ses.append(rnd(se0, 2))
+                else:
+                    prior = [se for sq, se in tl if sq <= best[0]]
+                    ses.append(rnd(prior[-1] if prior else se0, 2))
+            for j, k in enumerate(("epa", "auto_epa", "teleop_epa", "endgame_epa")):
                 out[k].append([p[j] for p in pts])
+            out["epa_se"].append(ses)
         asof_models[mid] = out
     asof_doc = {"schema": SCHEMA, "kind": "asof", "season": year,
                 "points": [{"id": f"w{i}", "label": sm.WEEK_LABELS[i]} for i in range(9)],
