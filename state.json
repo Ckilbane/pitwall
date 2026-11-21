@@ -1,0 +1,41 @@
+{
+ "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+ "data_version": "20261121T1652Z-f620add",
+ "seasons": {
+  "2022": {
+   "built_at": "2026-11-17T02:50:02Z",
+   "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+   "inputs_hash": "8e8c6572588aa3c105449ceaee55081929c638948f17afde15f18c43c0ada096",
+   "norm_hash": "972e30b5debf80e339a4d883c454c051fdcb6a7777f74413ab79a3de4fbccf42",
+   "ok": true
+  },
+  "2023": {
+   "built_at": "2026-11-17T02:50:02Z",
+   "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+   "inputs_hash": "5c60da381b9d14dab04bc9e5808ccd45deec37a769577806f7cbf3ea9b77e9ec",
+   "norm_hash": "9e7bc6f56d86ac13e81eac99e4104293f296b9ce4c35f65d939607775374876b",
+   "ok": true
+  },
+  "2024": {
+   "built_at": "2026-11-17T02:50:02Z",
+   "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+   "inputs_hash": "fd039c63ea3a9daa5517eac828c8154e162d0f07f61b97453abf93bab2b91fc5",
+   "norm_hash": "d88c0becc33edff09dae7169c57591768189a9a8876f8f5821baacce82ed7724",
+   "ok": true
+  },
+  "2025": {
+   "built_at": "2026-11-17T02:50:02Z",
+   "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+   "inputs_hash": "cb996cf1ef2222203dff939c1a9d802b47d520a4023e6d6ce9dcb87a861d938f",
+   "norm_hash": "3c839c5abf56a36de2c5708dc16f782a8082f8df22c7dc459f1cfcd7968b4a25",
+   "ok": true
+  },
+  "2026": {
+   "built_at": "2026-11-21T16:52:33Z",
+   "code_hash": "99b30ea837c8b3150c087ed43455fcdfcc29d30504dd4111dbfa73c44d594b4d",
+   "inputs_hash": "c850321c2513d065ed228fa5d4f577cc7cdfd7e31b9a239664f1e2dc7ee0ff46",
+   "norm_hash": "c1783fe28824e05f2dc983f28b7d6e41d48650b53b4ac900e259a13afceb90b3",
+   "ok": true
+  }
+ }
+}
